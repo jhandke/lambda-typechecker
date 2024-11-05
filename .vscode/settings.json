@@ -1,0 +1,20 @@
+{
+    "fileHeaderComment.parameter": {
+        "*": {
+            "company": "Jakob Handke"
+        },
+        "swift": {
+            "commentbegin": "//",
+			"commentprefix": "//",
+			"commentend": "//",
+        }
+    },
+    "fileHeaderComment.template": {
+        "swift": [
+            "${commentbegin}",
+            "${commentprefix} ${filename}",
+            "${commentprefix} Created by ${company} on ${year}-${month}-${day}.",
+            "${commentend}"
+        ]
+    }
+}
