@@ -41,6 +41,9 @@ func inferType(term: Term, context: Context) throws(TypecheckError) -> Type {
     case .trueConstant, .falseConstant: return .boolean
     // (Int==>)
     case .integerConstant: return .integer
+    // (Add==>)
+    case let .addition(lhs, rhs):
+        fatalError("Not implemented.")
     // (If==>)
     case let .conditional(test, thenBranch, elseBranch):
         if checkType(term: test, type: .boolean, context: context) {
