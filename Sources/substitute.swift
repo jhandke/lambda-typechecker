@@ -1,9 +1,11 @@
 //
 // substitute.swift
-// Created by Jakob Handke on 2024-10-22.
+// Typechecker
+//
+// Copyright © 2024 Jakob Handke.
 //
 
-func substitute(inputTerm: Term, variableName: String, replacementTerm: Term, debug: Bool = false) -> Term {
+func substitute(inputTerm: Term, variableName: String, replacementTerm: Term, debug _: Bool = false) -> Term {
     print("Replacing variable \(variableName) with \(replacementTerm) in\n\(inputTerm)")
     let result = substitute(inputTerm: inputTerm, variableName: variableName, replacementTerm: replacementTerm)
     print("Result: \(result)")
@@ -32,30 +34,38 @@ func substitute(inputTerm: Term, variableName: String, replacementTerm: Term) ->
             lhs: substitute(
                 inputTerm: lhs,
                 variableName: variableName,
-                replacementTerm: replacementTerm),
+                replacementTerm: replacementTerm
+            ),
             rhs: substitute(
                 inputTerm: rhs,
                 variableName: variableName,
-                replacementTerm: replacementTerm)
+                replacementTerm: replacementTerm
+            )
         )
+    case let .ascription(term, type):
+        .ascription(term: substitute(inputTerm: term, variableName: variableName, replacementTerm: replacementTerm), type: type)
     case let .application(function, argument):
         .application(
             function: substitute(inputTerm: function, variableName: variableName, replacementTerm: replacementTerm),
-            argument: substitute(inputTerm: argument, variableName: variableName, replacementTerm: replacementTerm))
+            argument: substitute(inputTerm: argument, variableName: variableName, replacementTerm: replacementTerm)
+        )
     case let .conditional(test, thenBranch, elseBranch):
         .conditional(
             test: substitute(
                 inputTerm: test,
                 variableName: variableName,
-                replacementTerm: replacementTerm),
+                replacementTerm: replacementTerm
+            ),
             thenBranch: substitute(
                 inputTerm: thenBranch,
                 variableName: variableName,
-                replacementTerm: replacementTerm),
+                replacementTerm: replacementTerm
+            ),
             elseBranch: substitute(
                 inputTerm: elseBranch,
                 variableName: variableName,
-                replacementTerm: replacementTerm)
+                replacementTerm: replacementTerm
+            )
         )
     case let .isZero(term):
         .isZero(term: substitute(inputTerm: term, variableName: variableName, replacementTerm: replacementTerm))

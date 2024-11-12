@@ -9,6 +9,7 @@ indirect enum Term {
     case abstraction(name: String, body: Term)
     case addition(lhs: Term, rhs: Term)
     case application(function: Term, argument: Term)
+    case ascription(term: Term, type: Type)
     case conditional(test: Term, thenBranch: Term, elseBranch: Term)
     case integerConstant(value: Int)
     case isZero(term: Term)
@@ -25,6 +26,8 @@ extension Term: Equatable {
             return lhsName == rhsName && lhsBody == rhsBody
         case let (.application(lhsFunction, lhsArgument), .application(rhsFunction, rhsArgument)):
             return lhsFunction == rhsFunction && lhsArgument == rhsArgument
+        case let (.ascription(lhsTerm, lhsType), .ascription(rhsTerm, rhsType)):
+            return lhsTerm == rhsTerm && lhsType == rhsType
         case let (.conditional(lhsTest, lhsThen, lhsElse), .conditional(rhsTest, rhsThen, rhsElse)):
             return lhsTest == rhsTest && lhsThen == rhsThen && lhsElse == rhsElse
         case let (.integerConstant(lhsValue), .integerConstant(rhsValue)):
@@ -47,6 +50,8 @@ extension Term: CustomStringConvertible {
             return "(+ \(lhs) \(rhs))"
         case let .application(function, argument):
             return "(\(function) \(argument))"
+        case let .ascription(term, type):
+            return "(\(term) : \(type))"
         case let .conditional(test, thenBranch, elseBranch):
             return "(if \(test) \(thenBranch) \(elseBranch))"
         case .falseConstant:
@@ -107,6 +112,7 @@ extension Value: Equatable {
 enum EvaluationError: Error {
     // case unsupported(input: Term)
     case additionError(lhs: Term, rhs: Term)
+    case ascriptionFailed(term: Term, type: Type)
     case wrongValue(actual: Value, message: String)
     case notAFunction(Term)
     case unexpectedVariable

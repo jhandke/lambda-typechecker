@@ -10,6 +10,7 @@ func evaluate(inputTerm: Term) throws(EvaluationError) -> Value {
     case let .abstraction(name, body):
         return .functionValue(name: name, body: body)
     case let .addition(lhs, rhs):
+        // rewrite with do try syntax
         if let lhsEvaluated = try? evaluate(inputTerm: lhs),
            let rhsEvaluated = try? evaluate(inputTerm: rhs),
            case let .integerValue(lhsValue) = lhsEvaluated,
@@ -30,9 +31,11 @@ func evaluate(inputTerm: Term) throws(EvaluationError) -> Value {
                     case let .functionValue(name, body): .abstraction(name: name, body: body)
                     case let .integerValue(value): .integerConstant(value: value)
                     }
-                let substituted = substitute(inputTerm: body,
-                                             variableName: name,
-                                             replacementTerm: mappedTerm)
+                let substituted = substitute(
+                    inputTerm: body,
+                    variableName: name,
+                    replacementTerm: mappedTerm
+                )
                 let result = try evaluate(inputTerm: substituted)
                 return result
             } else {
@@ -41,6 +44,13 @@ func evaluate(inputTerm: Term) throws(EvaluationError) -> Value {
         } catch {
             print(error)
             throw .applicationFailed(function: function, argument: argument)
+        }
+    case let .ascription(term, type):
+        do {
+            return try evaluate(inputTerm: term)
+        } catch {
+            print(error)
+            throw .ascriptionFailed(term: term, type: type)
         }
     case let .conditional(test, thenBranch, elseBranch):
         do {

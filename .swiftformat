@@ -1,3 +1,4 @@
 --header \n{file}\nTypechecker\n\nCopyright © {created.year} Jakob Handke.\n
 --indent 4
 --wraparguments preserve
+--disable wrapMultilineStatementBraces
