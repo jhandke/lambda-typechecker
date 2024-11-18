@@ -5,7 +5,16 @@ import PackageDescription
 
 let package = Package(
     name: "Typechecker",
+    dependencies: [
+        .package(
+            url: "https://github.com/apple/swift-collections.git",
+            .upToNextMajor(from: "1.1.0")
+        )
+    ],
     targets: [
-        .executableTarget(name: "Typechecker")
+        .executableTarget(name: "Typechecker",
+        dependencies: [
+            .product(name: "Collections", package: "swift-collections")
+        ])
     ]
 )

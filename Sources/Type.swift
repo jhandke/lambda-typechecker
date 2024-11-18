@@ -11,6 +11,7 @@ indirect enum Type {
     case boolean
     case integer
     case function(argumentType: Type, resultType: Type)
+    case variable(name: String)
 }
 
 extension Type: Equatable {
@@ -19,6 +20,7 @@ extension Type: Equatable {
         case (.boolean, .boolean), (.integer, .integer): return true
         case let (.function(lhsArgumentType, lhsResultType), .function(rhsArgumentType, rhsResultType)):
             return lhsArgumentType == rhsArgumentType && lhsResultType == rhsResultType
+        case let (.variable(lhsName), .variable(rhsName)): return lhsName == rhsName
         default: return false
         }
     }
@@ -29,7 +31,8 @@ extension Type: CustomStringConvertible {
         switch self {
         case .boolean: "Bool"
         case .integer: "Int"
-        case let .function(argumentType, resultType): "\(argumentType) -> \(resultType)"
+        case let .function(argumentType, resultType): "(\(argumentType) -> \(resultType))"
+        case let .variable(name): "var(\(name))"
         }
     }
 }

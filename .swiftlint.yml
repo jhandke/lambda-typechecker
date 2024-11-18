@@ -1,4 +1,4 @@
-line_length: 140
+line_length: 180
 disabled_rules:
   - function_body_length
   - cyclomatic_complexity
