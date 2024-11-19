@@ -16,16 +16,24 @@ typealias TypeSubstitution = OrderedDictionary<String, Type> // [TypeSubstitutio
 
 func substituteTypes(type: Type, substitutions: TypeSubstitution) -> Type {
     return substitutions.reversed().reduce(type) { resultType, substitutionItem in
-        return substituteType(type: resultType, name: substitutionItem.key, substitutionType: substitutionItem.value)
+        substituteType(
+            type: resultType, name: substitutionItem.key, substitutionType: substitutionItem.value
+        )
     }
 
     func substituteType(type: Type, name: String, substitutionType: Type) -> Type {
         switch type {
         case .boolean, .integer: return type
         case let .function(argumentType, resultType):
-            let substitutedArgumentType = substituteType(type: argumentType, name: name, substitutionType: substitutionType)
-            let substitutedResultType = substituteType(type: resultType, name: name, substitutionType: substitutionType)
-            return .function(argumentType: substitutedArgumentType, resultType: substitutedResultType)
+            let substitutedArgumentType = substituteType(
+                type: argumentType, name: name, substitutionType: substitutionType
+            )
+            let substitutedResultType = substituteType(
+                type: resultType, name: name, substitutionType: substitutionType
+            )
+            return .function(
+                argumentType: substitutedArgumentType, resultType: substitutedResultType
+            )
         case let .variable(variableName):
             if variableName == name {
                 return substitutionType
@@ -54,8 +62,10 @@ func unifyTypes(left: Type, right: Type) -> TypeSubstitution {
         return [rightName: left]
     case let (.function(leftArgumentType, leftResultType), .function(rightArgumentType, rightResultType)):
         let unifiedArgumentTypes = unifyTypes(left: leftArgumentType, right: rightArgumentType)
-        let unifiedResultTypes = unifyTypes(left: substituteTypes(type: leftResultType, substitutions: unifiedArgumentTypes),
-                                            right: substituteTypes(type: rightResultType, substitutions: unifiedArgumentTypes))
+        let unifiedResultTypes = unifyTypes(
+            left: substituteTypes(type: leftResultType, substitutions: unifiedArgumentTypes),
+            right: substituteTypes(type: rightResultType, substitutions: unifiedArgumentTypes)
+        )
         return unifiedArgumentTypes.merging(unifiedResultTypes) { _, new in new }
     default:
         fatalError("Can not unify types \(left) and \(right).")
