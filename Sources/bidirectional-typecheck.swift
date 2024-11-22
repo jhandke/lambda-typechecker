@@ -43,7 +43,13 @@ func inferTypeBidirectional(term: Term, context: Context) throws(BidirectionalTy
     case .integerConstant: return .integer
     // (Add==>)
     case let .addition(lhs, rhs):
-        fatalError("Not implemented.")
+        guard checkTypeBidirectional(term: lhs, type: .integer, context: context) else {
+            fatalError("Typecheck error: \(lhs) is not an integer.")
+        }
+        guard checkTypeBidirectional(term: rhs, type: .integer, context: context) else {
+            fatalError("Typecheck error: \(rhs) is not an integer.")
+        }
+        return .integer
     // (If==>)
     case let .conditional(test, thenBranch, elseBranch):
         if checkTypeBidirectional(term: test, type: .boolean, context: context) {
@@ -80,6 +86,8 @@ func inferTypeBidirectional(term: Term, context: Context) throws(BidirectionalTy
             return type
         }
         throw BidirectionalTypecheckError.checkFailed(term: term, type: type, context: context)
+    case .unit:
+        return .unit
     default:
         throw BidirectionalTypecheckError.noInferRule(term: term, context: context)
     }

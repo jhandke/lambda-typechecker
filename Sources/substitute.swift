@@ -5,16 +5,20 @@
 // Copyright © 2024 Jakob Handke.
 //
 
-func substitute(inputTerm: Term, variableName: String, replacementTerm: Term, debug _: Bool = false) -> Term {
-    print("Replacing variable \(variableName) with \(replacementTerm) in\n\(inputTerm)")
+func substitute(inputTerm: Term, variableName: String, replacementTerm: Term, debug: Bool = false) -> Term {
+    if debug {
+        print("Replacing variable \(variableName) with \(replacementTerm) in\n\(inputTerm)")
+    }
     let result = substitute(inputTerm: inputTerm, variableName: variableName, replacementTerm: replacementTerm)
-    print("Result: \(result)")
+    if debug {
+        print("Result: \(result)")
+    }
     return result
 }
 
 func substitute(inputTerm: Term, variableName: String, replacementTerm: Term) -> Term {
     return switch inputTerm {
-    case .trueConstant, .falseConstant, .integerConstant:
+    case .trueConstant, .falseConstant, .integerConstant, .string, .unit, .nilTerm:
         inputTerm
     case let .abstraction(name, body):
         if variableName == name {
@@ -75,5 +79,16 @@ func substitute(inputTerm: Term, variableName: String, replacementTerm: Term) ->
         } else {
             inputTerm
         }
+    case let .cons(head, tail):
+        .cons(head: substitute(inputTerm: head, variableName: variableName, replacementTerm: replacementTerm),
+              tail: substitute(inputTerm: tail, variableName: variableName, replacementTerm: replacementTerm))
+    case let .isEmpty(list):
+        .isEmpty(list: substitute(inputTerm: list, variableName: variableName, replacementTerm: replacementTerm))
+    case let .head(list):
+        .head(list: substitute(inputTerm: list, variableName: variableName, replacementTerm: replacementTerm))
+    case let .tail(list):
+        .tail(list: substitute(inputTerm: list, variableName: variableName, replacementTerm: replacementTerm))
+    case let .wildcard(body):
+        .wildcard(body: substitute(inputTerm: body, variableName: variableName, replacementTerm: replacementTerm))
     }
 }

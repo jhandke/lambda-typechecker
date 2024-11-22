@@ -4,18 +4,18 @@
             "type": "lldb",
             "request": "launch",
             "args": [],
-            "cwd": "${workspaceFolder:typechecker-swift-enum}",
+            "cwd": "${workspaceFolder:typechecker}",
             "name": "Debug Typechecker",
-            "program": "${workspaceFolder:typechecker-swift-enum}/.build/debug/Typechecker",
+            "program": "${workspaceFolder:typechecker}/.build/debug/Typechecker",
             "preLaunchTask": "swift: Build Debug Typechecker"
         },
         {
             "type": "lldb",
             "request": "launch",
             "args": [],
-            "cwd": "${workspaceFolder:typechecker-swift-enum}",
+            "cwd": "${workspaceFolder:typechecker}",
             "name": "Release Typechecker",
-            "program": "${workspaceFolder:typechecker-swift-enum}/.build/release/Typechecker",
+            "program": "${workspaceFolder:typechecker}/.build/release/Typechecker",
             "preLaunchTask": "swift: Build Release Typechecker"
         }
     ]

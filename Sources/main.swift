@@ -18,12 +18,14 @@
 //                                     elseBranch: .integerConstant(value: 1337))
 
 // let testApplication: Term = .application(function: .ascription(term: .abstraction(name: "x",
-//                                                                 body: .conditional(test: .isZero(term: .variable(name: "x")),
-//                                                                                    thenBranch: .integerConstant(value: 23),
-//                                                                                    elseBranch: .integerConstant(value: 100))), type: .function(argumentType: .integer, resultType: .integer)),
-//                                          argument: .integerConstant(value: 2))
+//                                                                                   body: .conditional(test: .isZero(term: .variable(name: "x")),
+//                                                                                                      thenBranch: .integerConstant(value: 23),
+//                                                                                                      elseBranch: .integerConstant(value: 100))),
+//                                                                type: .function(argumentType: .integer, resultType: .integer)),
+//  argument: .integerConstant(value: 2))
 
-// let secondExample: Term = .application(function: .ascription(term: .abstraction(name: "x", body: .isZero(term: .variable(name: "x"))), type: .function(argumentType: .integer, resultType: .boolean)), argument: .integerConstant(value: 1))
+// let secondExample: Term = .application(function: .ascription(term: .abstraction(name: "x", body: .isZero(term: .variable(name: "x"))),
+//                                                              type: .function(argumentType: .integer, resultType: .boolean)), argument: .integerConstant(value: 1))
 
 // print(secondExample)
 // do {
@@ -43,4 +45,13 @@
 //     print(error)
 // }
 
-task4()
+// task4()
+
+let term: Term = .conditional(test: .isZero(term: .integerConstant(value: 42)),
+                              thenBranch: .application(function: .abstraction(name: "x",
+                                                                              body: .addition(lhs: .variable(name: "x"),
+                                                                                              rhs: .integerConstant(value: 2))),
+                                                       argument: .integerConstant(value: 4)),
+                              elseBranch: .integerConstant(value: 555))
+print(term)
+print(inferTypesUnification(term: term, context: [:]))

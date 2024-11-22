@@ -5,91 +5,115 @@
 // Copyright © 2024 Jakob Handke.
 //
 
-func evaluate(inputTerm: Term) throws(EvaluationError) -> Value {
+func map(_ value: Value) -> Term {
+    return switch value {
+    case .falseValue: .falseConstant
+    case .trueValue: .trueConstant
+    case let .functionValue(name, body): .abstraction(name: name, body: body)
+    case let .integerValue(value): .integerConstant(value: value)
+    case .unit: .unit
+    case .nilValue: .nilTerm
+    case let .cons(head, tail):
+        .cons(head: map(head), tail: map(tail))
+    case let .string(value): .string(value: value)
+    case let .wildcard(body): .wildcard(body: map(body))
+    }
+}
+
+func evaluate(inputTerm: Term) -> Value {
     switch inputTerm {
     case let .abstraction(name, body):
         return .functionValue(name: name, body: body)
     case let .addition(lhs, rhs):
         // rewrite with do try syntax
-        if let lhsEvaluated = try? evaluate(inputTerm: lhs),
-           let rhsEvaluated = try? evaluate(inputTerm: rhs),
-           case let .integerValue(lhsValue) = lhsEvaluated,
-           case let .integerValue(rhsValue) = rhsEvaluated {
-            return Value.integerValue(value: lhsValue + rhsValue)
+        let lhsEvaluated = evaluate(inputTerm: lhs)
+        let rhsEvaluated = evaluate(inputTerm: rhs)
+        if case let .integerValue(lhsValue) = lhsEvaluated {
+            if case let .integerValue(rhsValue) = rhsEvaluated {
+                return Value.integerValue(value: lhsValue + rhsValue)
+            } else {
+                fatalError("Evaluation error: \(rhsEvaluated) is not an integer value.")
+            }
         } else {
-            throw .additionError(lhs: lhs, rhs: rhs)
+            fatalError("Evaluation error: \(lhsEvaluated) is not an integer value.")
         }
     case let .application(function, argument):
-        do {
-            let evaluatedFunction = try evaluate(inputTerm: function)
-            if case let .functionValue(name, body) = evaluatedFunction {
-                let evaluatedArgument = try evaluate(inputTerm: argument)
-                let mappedTerm: Term =
-                    switch evaluatedArgument {
-                    case .falseValue: .falseConstant
-                    case .trueValue: .trueConstant
-                    case let .functionValue(name, body): .abstraction(name: name, body: body)
-                    case let .integerValue(value): .integerConstant(value: value)
-                    }
-                let substituted = substitute(
-                    inputTerm: body,
-                    variableName: name,
-                    replacementTerm: mappedTerm
-                )
-                let result = try evaluate(inputTerm: substituted)
-                return result
-            } else {
-                throw EvaluationError.notAFunction(function)
-            }
-        } catch {
-            print(error)
-            throw .applicationFailed(function: function, argument: argument)
+        let evaluatedFunction = evaluate(inputTerm: function)
+        let evaluatedArgument = evaluate(inputTerm: argument)
+        let mappedArgument: Term = map(evaluatedArgument)
+        switch evaluatedFunction {
+        case let .functionValue(name, body):
+            let substituted = substitute(
+                inputTerm: body,
+                variableName: name,
+                replacementTerm: mappedArgument
+            )
+            let result = evaluate(inputTerm: substituted)
+            return result
+        case let .wildcard(_):
+            fatalError("Not implemented.")
+        default:
+            fatalError("Evaluation error: \(evaluatedFunction) is not a function nor a wildcard.")
         }
-    case let .ascription(term, type):
-        do {
-            return try evaluate(inputTerm: term)
-        } catch {
-            print(error)
-            throw .ascriptionFailed(term: term, type: type)
-        }
+    case let .ascription(term, _):
+        return evaluate(inputTerm: term)
     case let .conditional(test, thenBranch, elseBranch):
-        do {
-            let evaluatedTest = try evaluate(inputTerm: test)
-            switch evaluatedTest {
-            case .trueValue:
-                let evaluatedThen = try evaluate(inputTerm: thenBranch)
-                return evaluatedThen
-            case .falseValue:
-                let evaluatedElse = try evaluate(inputTerm: elseBranch)
-                return evaluatedElse
-            default:
-                throw EvaluationError.wrongValue(actual: evaluatedTest, message: "Expected boolean value.")
-            }
-        } catch {
-            print(error)
-            throw .conditionalFailed(test)
+        let evaluatedTest = evaluate(inputTerm: test)
+        switch evaluatedTest {
+        case .trueValue:
+            let evaluatedThen = evaluate(inputTerm: thenBranch)
+            return evaluatedThen
+        case .falseValue:
+            let evaluatedElse = evaluate(inputTerm: elseBranch)
+            return evaluatedElse
+        default:
+            fatalError("Evaluation error: Expected boolean value in \(evaluatedTest)")
         }
     case .falseConstant: return .falseValue
     case .trueConstant: return .trueValue
     case let .integerConstant(value): return .integerValue(value: value)
     case let .isZero(term):
-        do {
-            let evaluatedTerm = try evaluate(inputTerm: term)
-            switch evaluatedTerm {
-            case let .integerValue(value):
-                if value == 0 {
-                    return .trueValue
-                } else {
-                    return .falseValue
-                }
-            default:
-                throw EvaluationError.wrongValue(actual: evaluatedTerm, message: "Expected integer value.")
+        let evaluatedTerm = evaluate(inputTerm: term)
+        switch evaluatedTerm {
+        case let .integerValue(value):
+            if value == 0 {
+                return .trueValue
+            } else {
+                return .falseValue
             }
-        } catch {
-            print(error)
-            throw .isZeroFailed(term)
+        default:
+            fatalError("Evaluation error: Expected integer value in \(evaluatedTerm)")
         }
     case .variable:
-        throw .unexpectedVariable
+        fatalError("Evaluation error: Unexpected variable.")
+    case .unit:
+        return .unit
+    case .nilTerm:
+        return .nilValue
+    case let .cons(head, tail):
+        let evaluatedHead = evaluate(inputTerm: head)
+        let evaluatedTail = evaluate(inputTerm: tail)
+        return .cons(evaluatedHead, evaluatedTail)
+    case let .isEmpty(list):
+        let evaluatedList = evaluate(inputTerm: list)
+        if case .nilValue = evaluatedList {
+            return .trueValue
+        }
+        return .falseValue
+    case let .head(list):
+        if case let .cons(head, _) = list {
+            return evaluate(inputTerm: head)
+        }
+        fatalError("Evaluation error: \(list) is not a list.")
+    case let .tail(list: list):
+        if case let .cons(_, tail) = list {
+            return evaluate(inputTerm: tail)
+        }
+        fatalError("Evaluation error: \(list) is not a list.")
+    case let .string(value):
+        return .string(value: value)
+    case let .wildcard(body):
+        return .wildcard(body: evaluate(inputTerm: body))
     }
+    fatalError("Evaluation error: No rule for \(inputTerm)")
 }

@@ -1,6 +1,8 @@
 //
 // Expressions.swift
-// Created by Jakob Handke on 2024-10-23.
+// Typechecker
+//
+// Copyright © 2024 Jakob Handke.
 //
 
 // MARK: Term
@@ -15,13 +17,21 @@ indirect enum Term {
     case isZero(term: Term)
     case falseConstant
     case trueConstant
+    case string(value: String)
+    case unit
+    case nilTerm
+    case cons(head: Term, tail: Term)
+    case isEmpty(list: Term)
+    case head(list: Term)
+    case tail(list: Term)
     case variable(name: String)
+    case wildcard(body: Term)
 }
 
 extension Term: Equatable {
     static func == (lhs: Term, rhs: Term) -> Bool {
         switch (lhs, rhs) {
-        case (.falseConstant, .falseConstant), (.trueConstant, .trueConstant): return true
+        case (.falseConstant, .falseConstant), (.trueConstant, .trueConstant), (.unit, .unit): return true
         case let (.abstraction(lhsName, lhsBody), .abstraction(rhsName, rhsBody)):
             return lhsName == rhsName && lhsBody == rhsBody
         case let (.application(lhsFunction, lhsArgument), .application(rhsFunction, rhsArgument)):
@@ -36,6 +46,7 @@ extension Term: Equatable {
             return lhsTerm == rhsTerm
         case let (.variable(lhsName), .variable(name: rhsName)):
             return lhsName == rhsName
+        case let (.string(lhsString), .string(rhsString)): return lhsString == rhsString
         default: return false
         }
     }
@@ -64,17 +75,38 @@ extension Term: CustomStringConvertible {
             return "(isZero? \(term))"
         case let .variable(name):
             return name
+        case .unit:
+            return "unit"
+        case .nilTerm:
+            return "nil"
+        case let .cons(first, second):
+            return "(list \(first), \(second))"
+        case let .isEmpty(list):
+            return "(isEmpty? \(list))"
+        case let .head(list):
+            return "(head \(list))"
+        case let .tail(list):
+            return "(tail \(list))"
+        case let .string(value):
+            return "\"\(value)\""
+        case .wildcard(body: let body):
+            return "(λ_.\(body))"
         }
     }
 }
 
 // MARK: Value
 
-enum Value {
+indirect enum Value {
     case falseValue
     case trueValue
     case integerValue(value: Int)
     case functionValue(name: String, body: Term)
+    case unit
+    case nilValue
+    case cons(Value, Value)
+    case string(value: String)
+    case wildcard(body: Value)
 }
 
 extension Value: CustomStringConvertible {
@@ -88,6 +120,16 @@ extension Value: CustomStringConvertible {
             return "\(value)"
         case let .functionValue(name, body):
             return "(🔧\(name).\(body))"
+        case .unit:
+            return "unit"
+        case let .string(value):
+            return "\"\(value)\""
+        case .nilValue:
+            return "nil"
+        case let .cons(first, second):
+            return "(cons \(first) \(second))"
+        case let .wildcard(body):
+            return "(🔧_.\(body))"
         }
     }
 }
@@ -95,28 +137,16 @@ extension Value: CustomStringConvertible {
 extension Value: Equatable {
     static func == (lhs: Value, rhs: Value) -> Bool {
         switch (lhs, rhs) {
-        case (.falseValue, .falseValue), (.trueValue, .trueValue):
+        case (.falseValue, .falseValue), (.trueValue, .trueValue), (.unit, .unit):
             return true
         case let (.integerValue(lhsValue), .integerValue(rhsValue)):
             return lhsValue == rhsValue
         case let (.functionValue(lhsName, lhsBody), .functionValue(rhsName, rhsBody)):
             return lhsName == rhsName && lhsBody == rhsBody
+        case let (.string(lhsValue), .string(rhsValue)):
+            return lhsValue == rhsValue
         default:
             return false
         }
     }
-}
-
-// MARK: EvaluationError
-
-enum EvaluationError: Error {
-    // case unsupported(input: Term)
-    case additionError(lhs: Term, rhs: Term)
-    case ascriptionFailed(term: Term, type: Type)
-    case wrongValue(actual: Value, message: String)
-    case notAFunction(Term)
-    case unexpectedVariable
-    case isZeroFailed(Term)
-    case conditionalFailed(Term)
-    case applicationFailed(function: Term, argument: Term)
 }
