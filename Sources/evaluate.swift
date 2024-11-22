@@ -50,7 +50,7 @@ func evaluate(inputTerm: Term) -> Value {
             )
             let result = evaluate(inputTerm: substituted)
             return result
-        case let .wildcard(_):
+        case .wildcard:
             fatalError("Not implemented.")
         default:
             fatalError("Evaluation error: \(evaluatedFunction) is not a function nor a wildcard.")

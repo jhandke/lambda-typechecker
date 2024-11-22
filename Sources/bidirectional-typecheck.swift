@@ -1,5 +1,5 @@
 //
-// typecheck.swift
+// bidirectional-typecheck.swift
 // Typechecker
 //
 // Copyright © 2024 Jakob Handke.
@@ -23,19 +23,15 @@ func checkTypeBidirectional(term: Term, type: Type, context: Context) -> Bool {
         return false
     // (Check<==)
     default:
-        do {
-            let inferredType = try inferTypeBidirectional(term: term, context: context)
-            if type == inferredType {
-                return true
-            }
-        } catch {
-            print(error)
+        let inferredType = inferTypeBidirectional(term: term, context: context)
+        if type == inferredType {
+            return true
         }
         return false
     }
 }
 
-func inferTypeBidirectional(term: Term, context: Context) throws(BidirectionalTypecheckError) -> Type {
+func inferTypeBidirectional(term: Term, context: Context) -> Type {
     switch term {
     // (True==>), (False==>)
     case .trueConstant, .falseConstant: return .boolean
@@ -52,43 +48,44 @@ func inferTypeBidirectional(term: Term, context: Context) throws(BidirectionalTy
         return .integer
     // (If==>)
     case let .conditional(test, thenBranch, elseBranch):
-        if checkTypeBidirectional(term: test, type: .boolean, context: context) {
-            let type2 = try inferTypeBidirectional(term: thenBranch, context: context)
-            let type3 = try inferTypeBidirectional(term: elseBranch, context: context)
-            if type2 == type3 {
-                return type2
-            }
+        guard checkTypeBidirectional(term: test, type: .boolean, context: context) else {
+            fatalError("Type error: \(test) is not of type boolean.")
         }
-        throw BidirectionalTypecheckError.inferFailed(term: term, context: context)
+        let type2 = inferTypeBidirectional(term: thenBranch, context: context)
+        let type3 = inferTypeBidirectional(term: elseBranch, context: context)
+        guard type2 == type3 else {
+            fatalError("Type error: \(type2) and \(type3) are not equal.")
+        }
+        return type2
     // (IsZero==>)
     case let .isZero(term):
-        if checkTypeBidirectional(term: term, type: .integer, context: context) {
-            return .boolean
+        guard checkTypeBidirectional(term: term, type: .integer, context: context) else {
+            fatalError("Type error: \(term) is not of type integer.")
         }
-        throw BidirectionalTypecheckError.checkFailed(term: term, type: .integer, context: context)
+        return .boolean
     // (Var==>)
     case let .variable(name):
-        if let type = context[name] {
-            return type
+        guard let type = context[name] else {
+            fatalError("Type error: Variable \(name) does not exist in context.")
         }
-        throw BidirectionalTypecheckError.inferFailed(term: term, context: context)
+        return type
     // (Apply==>)
     case let .application(function, argument):
-        let functionType = try inferTypeBidirectional(term: function, context: context)
-        if case let .function(argumentType, resultType) = functionType,
-           checkTypeBidirectional(term: argument, type: argumentType, context: context) {
-            return resultType
+        let functionType = inferTypeBidirectional(term: function, context: context)
+        guard case let .function(argumentType, resultType) = functionType else {
+            fatalError("Type error: \(functionType)")
         }
-        throw BidirectionalTypecheckError.inferFailed(term: term, context: context)
+        guard checkTypeBidirectional(term: argument, type: argumentType, context: context) else {
+            fatalError("Type error: \(argument) is not of type \(argumentType).")
+        }
+        return resultType
     // (Ascription==>)
     case let .ascription(term, type):
-        if checkTypeBidirectional(term: term, type: type, context: context) {
-            return type
+        guard checkTypeBidirectional(term: term, type: type, context: context) else {
+            fatalError("Type error: \(term) is not of type \(type).")
         }
-        throw BidirectionalTypecheckError.checkFailed(term: term, type: type, context: context)
-    case .unit:
-        return .unit
+        return type
     default:
-        throw BidirectionalTypecheckError.noInferRule(term: term, context: context)
+        fatalError("Type error: No rule implemented for term \(term).")
     }
 }

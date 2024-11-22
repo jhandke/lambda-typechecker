@@ -47,11 +47,11 @@
 
 // task4()
 
-let term: Term = .conditional(test: .isZero(term: .integerConstant(value: 42)),
+let term: Term = .conditional(test: .isZero(term: .integerConstant(value: 0)),
                               thenBranch: .application(function: .abstraction(name: "x",
                                                                               body: .addition(lhs: .variable(name: "x"),
                                                                                               rhs: .integerConstant(value: 2))),
                                                        argument: .integerConstant(value: 4)),
-                              elseBranch: .integerConstant(value: 555))
+                              elseBranch: .falseConstant)
 print(term)
 print(inferTypesUnification(term: term, context: [:]))

@@ -7,11 +7,6 @@
 
 import Collections
 
-// struct TypeSubstitutionItem {
-//     let name: String
-//     let type: Type
-// }
-
 typealias TypeSubstitution = OrderedDictionary<String, Type> // [TypeSubstitutionItem]
 
 extension TypeSubstitution {
@@ -19,7 +14,6 @@ extension TypeSubstitution {
         self.merge(other) { _, new in new }
     }
 }
-
 
 func substituteTypes(type: Type, substitutions: TypeSubstitution) -> Type {
     return substitutions.reversed().reduce(type) { resultType, substitutionItem in
