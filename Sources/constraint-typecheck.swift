@@ -60,7 +60,7 @@ func inferTypesUnification(term: Term, context: Context) -> Type {
             let bodyType = inferTypes(term: body, context: context)
             let newSubstitution = unifyTypes(left: bodyType, right: .integer)
             substitution.merge(newSubstitution)
-            return bodyType
+            return .boolean
         // (C-Add)
         case let .addition(lhs, rhs):
             let lhsType = inferTypes(term: lhs, context: context)
