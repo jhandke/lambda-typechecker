@@ -30,12 +30,12 @@ func task4() {
     // MARK: Task 4.9
 
     print("Task 4.9")
-    print(unifyTypes(left: .function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
-                     right: .function(argumentType: .boolean, resultType: .variable(name: "gamma"))))
+    print(unifyTypes(.function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
+                     .function(argumentType: .boolean, resultType: .variable(name: "gamma"))))
 
-    print(unifyTypes(left: .function(argumentType: .integer, resultType: .function(argumentType: .variable(name: "alpha"), resultType: .integer)),
-                     right: .function(argumentType: .variable(name: "beta"), resultType: .variable(name: "gamma"))))
+    print(unifyTypes(.function(argumentType: .integer, resultType: .function(argumentType: .variable(name: "alpha"), resultType: .integer)),
+                     .function(argumentType: .variable(name: "beta"), resultType: .variable(name: "gamma"))))
 
-    print(unifyTypes(left: .function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
-                     right: .function(argumentType: .boolean, resultType: .variable(name: "alpha"))))
+    print(unifyTypes(.function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
+                     .function(argumentType: .boolean, resultType: .variable(name: "alpha"))))
 }

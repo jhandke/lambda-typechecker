@@ -116,6 +116,6 @@ func inferTypesUnification(term: Term, context: Context) -> Type {
         let valueType = inferTypesUnification(term: value, context: context)
         let extendedContext = context.adding(name: name, type: valueType)
         let bodyType = inferTypesUnification(term: body, context: extendedContext)
-
+        fatalError("TBI")
     }
 }
