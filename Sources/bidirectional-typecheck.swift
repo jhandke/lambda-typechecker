@@ -85,7 +85,19 @@ func inferTypeBidirectional(term: Term, context: Context) -> Type {
             fatalError("Type error: \(term) is not of type \(type).")
         }
         return type
+    // default:
+    //     fatalError("Type error: No rule implemented for term \(term).")
+    case .string:
+        return .stringType
+    case .unit:
+        return .unit
+    case .nilTerm:
+        return .list(type: .unit) // ?
+    case let .head(list):
+        return inferTypeBidirectional(term: list, context: context)
+    case let .tail(list):
+        return inferTypeBidirectional(term: list, context: context)
     default:
-        fatalError("Type error: No rule implemented for term \(term).")
+        fatalError("Type error: No infer rule available for \(term).")
     }
 }

@@ -90,5 +90,13 @@ func substitute(inputTerm: Term, variableName: String, replacementTerm: Term) ->
         .tail(list: substitute(inputTerm: list, variableName: variableName, replacementTerm: replacementTerm))
     case let .wildcard(body):
         .wildcard(body: substitute(inputTerm: body, variableName: variableName, replacementTerm: replacementTerm))
+    case let .letBinding(name, value, body):
+        .letBinding(name: name,
+                    value: substitute(inputTerm: value,
+                                      variableName: variableName,
+                                      replacementTerm: replacementTerm),
+                    body: substitute(inputTerm: body,
+                                     variableName: variableName,
+                                     replacementTerm: replacementTerm))
     }
 }

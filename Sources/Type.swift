@@ -7,12 +7,24 @@
 
 typealias Context = [String: Type]
 
+extension Context {
+    mutating func add(name: String, type: Type) {
+        self[name] = type
+    }
+
+    func adding(name: String, type: Type) -> Self {
+        var copy = self
+        copy.add(name: name, type: type)
+        return copy
+    }
+}
+
 indirect enum Type {
     case boolean
     case integer
     case function(argumentType: Type, resultType: Type)
     case unit
-    case stringType(value: String)
+    case stringType
     case list(type: Type)
     case variable(name: String)
 }

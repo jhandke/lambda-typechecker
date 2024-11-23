@@ -10,8 +10,14 @@ import Collections
 typealias TypeSubstitution = OrderedDictionary<String, Type> // [TypeSubstitutionItem]
 
 extension TypeSubstitution {
-    mutating func merge(_ other: TypeSubstitution) {
+    mutating func append(_ other: TypeSubstitution) {
         self.merge(other) { _, new in new }
+    }
+
+    func appending(_ other: TypeSubstitution) -> Self {
+        var copy = self
+        copy.append(other)
+        return copy
     }
 }
 
@@ -47,33 +53,33 @@ func substituteTypes(type: Type, substitutions: TypeSubstitution) -> Type {
     }
 }
 
-func unifyTypes(left: Type, right: Type) -> TypeSubstitution {
+func unifyTypes(_ left: Type, _ right: Type) -> TypeSubstitution {
     switch (left, right) {
     case (_, _) where left == right:
         return [:]
-    case let (.variable(leftName), _) where !isFree(leftName, in: right):
+    case let (.variable(leftName), _) where !occurs(leftName, in: right):
         return [leftName: right]
-    case let (_, .variable(rightName)) where !isFree(rightName, in: left):
+    case let (_, .variable(rightName)) where !occurs(rightName, in: left):
         return [rightName: left]
     case let (.function(leftArgumentType, leftResultType), .function(rightArgumentType, rightResultType)):
-        let unifiedArgumentTypes = unifyTypes(left: leftArgumentType, right: rightArgumentType)
+        let unifiedArgumentTypes = unifyTypes(leftArgumentType, rightArgumentType)
         let unifiedResultTypes = unifyTypes(
-            left: substituteTypes(type: leftResultType, substitutions: unifiedArgumentTypes),
-            right: substituteTypes(type: rightResultType, substitutions: unifiedArgumentTypes)
+            substituteTypes(type: leftResultType, substitutions: unifiedArgumentTypes),
+            substituteTypes(type: rightResultType, substitutions: unifiedArgumentTypes)
         )
-        return unifiedArgumentTypes.merging(unifiedResultTypes) { _, new in new }
+        return unifiedArgumentTypes.appending(unifiedResultTypes)
     default:
         fatalError("Type error: Can not unify types \(left) and \(right).")
     }
 
-    func isFree(_ variableName: String, in typeScheme: Type) -> Bool {
+    func occurs(_ variableName: String, in typeScheme: Type) -> Bool {
         return switch typeScheme {
         case .boolean, .integer, .unit, .stringType: false
         case let .function(argumentType, resultType):
-            isFree(variableName, in: argumentType) || isFree(variableName, in: resultType)
+            occurs(variableName, in: argumentType) || occurs(variableName, in: resultType)
         case let .variable(name): variableName == name
         case let .list(elementType):
-            isFree(variableName, in: elementType)
+            occurs(variableName, in: elementType)
         }
     }
 }

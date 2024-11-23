@@ -93,7 +93,7 @@ func evaluate(inputTerm: Term) -> Value {
     case let .cons(head, tail):
         let evaluatedHead = evaluate(inputTerm: head)
         let evaluatedTail = evaluate(inputTerm: tail)
-        return .cons(evaluatedHead, evaluatedTail)
+        return .cons(head: evaluatedHead, tail: evaluatedTail)
     case let .isEmpty(list):
         let evaluatedList = evaluate(inputTerm: list)
         if case .nilValue = evaluatedList {
@@ -101,19 +101,22 @@ func evaluate(inputTerm: Term) -> Value {
         }
         return .falseValue
     case let .head(list):
-        if case let .cons(head, _) = list {
-            return evaluate(inputTerm: head)
+        guard case let .cons(head, _) = list else {
+            fatalError("Evaluation error: \(list) is not a list.")
         }
-        fatalError("Evaluation error: \(list) is not a list.")
+        return evaluate(inputTerm: head)
     case let .tail(list: list):
-        if case let .cons(_, tail) = list {
-            return evaluate(inputTerm: tail)
+        guard case let .cons(_, tail) = list else {
+            fatalError("Evaluation error: \(list) is not a list.")
         }
-        fatalError("Evaluation error: \(list) is not a list.")
+        return evaluate(inputTerm: tail)
     case let .string(value):
         return .string(value: value)
     case let .wildcard(body):
         return .wildcard(body: evaluate(inputTerm: body))
+    case let .letBinding(name, value, body):
+        let substitutedBody = substitute(inputTerm: body, variableName: name, replacementTerm: value)
+        return evaluate(inputTerm: substitutedBody)
     }
     fatalError("Evaluation error: No rule for \(inputTerm)")
 }

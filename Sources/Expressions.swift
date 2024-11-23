@@ -26,14 +26,17 @@ indirect enum Term {
     case tail(list: Term)
     case variable(name: String)
     case wildcard(body: Term)
+    case letBinding(name: String, value: Term, body: Term)
 }
 
 extension Term: Equatable {
     static func == (lhs: Term, rhs: Term) -> Bool {
         switch (lhs, rhs) {
-        case (.falseConstant, .falseConstant), (.trueConstant, .trueConstant), (.unit, .unit): return true
+        case (.falseConstant, .falseConstant), (.trueConstant, .trueConstant), (.unit, .unit), (.nilTerm, .nilTerm): return true
         case let (.abstraction(lhsName, lhsBody), .abstraction(rhsName, rhsBody)):
             return lhsName == rhsName && lhsBody == rhsBody
+        case let (.addition(lhs1, lhs2), .addition(rhs1, rhs2)):
+            return lhs1 == rhs1 && lhs2 == rhs2
         case let (.application(lhsFunction, lhsArgument), .application(rhsFunction, rhsArgument)):
             return lhsFunction == rhsFunction && lhsArgument == rhsArgument
         case let (.ascription(lhsTerm, lhsType), .ascription(rhsTerm, rhsType)):
@@ -44,9 +47,21 @@ extension Term: Equatable {
             return lhsValue == rhsValue
         case let (.isZero(lhsTerm), .isZero(rhsTerm)):
             return lhsTerm == rhsTerm
+        case let (.string(lhsString), .string(rhsString)): return lhsString == rhsString
+        case let (.cons(lhsHead, lhsTail), .cons(rhsHead, rhsTail)):
+            return lhsHead == rhsHead && lhsTail == rhsTail
+        case let (.isEmpty(lhsList), .isEmpty(list: rhsList)):
+            return lhsList == rhsList
+        case let (.head(lhsList), .head(rhsList)):
+            return lhsList == rhsList
+        case let (.tail(lhsList), .tail(rhsList)):
+            return lhsList == rhsList
         case let (.variable(lhsName), .variable(name: rhsName)):
             return lhsName == rhsName
-        case let (.string(lhsString), .string(rhsString)): return lhsString == rhsString
+        case let (.wildcard(lhsBody), .wildcard(rhsBody)):
+            return lhsBody == rhsBody
+        case let (.letBinding(lhsName, lhsValue, lhsBody), .letBinding(rhsName, rhsValue, rhsBody)):
+            return lhsName == rhsName && lhsValue == rhsValue && lhsBody == rhsBody
         default: return false
         }
     }
@@ -89,8 +104,10 @@ extension Term: CustomStringConvertible {
             return "(tail \(list))"
         case let .string(value):
             return "\"\(value)\""
-        case .wildcard(body: let body):
+        case let .wildcard(body: body):
             return "(λ_.\(body))"
+        case let .letBinding(name, value, body):
+            return "(let \(name) \(value) \(body))"
         }
     }
 }
@@ -104,9 +121,30 @@ indirect enum Value {
     case functionValue(name: String, body: Term)
     case unit
     case nilValue
-    case cons(Value, Value)
+    case cons(head: Value, tail: Value)
     case string(value: String)
     case wildcard(body: Value)
+}
+
+extension Value: Equatable {
+    static func == (lhs: Value, rhs: Value) -> Bool {
+        switch (lhs, rhs) {
+        case (.falseValue, .falseValue), (.trueValue, .trueValue), (.unit, .unit), (.nilValue, .nilValue):
+            return true
+        case let (.integerValue(lhsValue), .integerValue(rhsValue)):
+            return lhsValue == rhsValue
+        case let (.functionValue(lhsName, lhsBody), .functionValue(rhsName, rhsBody)):
+            return lhsName == rhsName && lhsBody == rhsBody
+        case let (.string(lhsValue), .string(rhsValue)):
+            return lhsValue == rhsValue
+        case let (.cons(lhsHead, lhsTail), .cons(rhsHead, rhsTail)):
+            return lhsHead == rhsHead && lhsTail == rhsTail
+        case let (.wildcard(lhsBody), .wildcard(rhsBody)):
+            return lhsBody == rhsBody
+        default:
+            return false
+        }
+    }
 }
 
 extension Value: CustomStringConvertible {
@@ -130,23 +168,6 @@ extension Value: CustomStringConvertible {
             return "(cons \(first) \(second))"
         case let .wildcard(body):
             return "(🔧_.\(body))"
-        }
-    }
-}
-
-extension Value: Equatable {
-    static func == (lhs: Value, rhs: Value) -> Bool {
-        switch (lhs, rhs) {
-        case (.falseValue, .falseValue), (.trueValue, .trueValue), (.unit, .unit):
-            return true
-        case let (.integerValue(lhsValue), .integerValue(rhsValue)):
-            return lhsValue == rhsValue
-        case let (.functionValue(lhsName, lhsBody), .functionValue(rhsName, rhsBody)):
-            return lhsName == rhsName && lhsBody == rhsBody
-        case let (.string(lhsValue), .string(rhsValue)):
-            return lhsValue == rhsValue
-        default:
-            return false
         }
     }
 }

@@ -10,8 +10,6 @@ enum TypeScheme {
     case type(Type)
 }
 
-// typealias Constraint = (Type, Type)
-
 private var usedTypeVariables = [String]()
 private var typeVariables = ["α", "β", "γ", "δ", "ε", "ζ", "η", "θ", "ι", "κ", "μ",
                              "ν", "ξ", "ο", "π", "ρ", "σ", "τ", "υ", "φ", "χ", "ψ", "ω"]
@@ -51,41 +49,34 @@ func inferTypesUnification(term: Term, context: Context) -> Type {
     // (C-IsZero)
     case let .isZero(body):
         let bodyType = inferTypesUnification(term: body, context: context)
-        substitution = unifyTypes(left: bodyType, right: .integer)
+        substitution.append(unifyTypes(bodyType, .integer))
         return substituteTypes(type: .boolean, substitutions: substitution)
-    // return .boolean
     // (C-Add)
     case let .addition(lhs, rhs):
         let lhsType = inferTypesUnification(term: lhs, context: context)
-        substitution.merge(unifyTypes(left: lhsType, right: .integer))
+        substitution.append(unifyTypes(lhsType, .integer))
         let rhsType = inferTypesUnification(term: rhs, context: context)
-        substitution.merge(unifyTypes(left: rhsType, right: .integer))
-        // substitution.merge(lhsSubstitution)
-        // substitution.merge(rhsSubstitution)
-        // return .integer
+        substitution.append(unifyTypes(rhsType, .integer))
         return substituteTypes(type: .integer, substitutions: substitution)
     // (C-Ascription)
     case let .ascription(term, type):
         let termType = inferTypesUnification(term: term, context: context)
-        substitution.merge(unifyTypes(left: type, right: termType))
-        // return type // ??
+        substitution.append(unifyTypes(type, termType))
         return substituteTypes(type: type, substitutions: substitution)
     // (C-If)
     case let .conditional(test, thenBranch, elseBranch):
         let testType = inferTypesUnification(term: test, context: context)
-        substitution.merge(unifyTypes(left: testType, right: .boolean))
+        substitution.append(unifyTypes(testType, .boolean))
         let thenType = inferTypesUnification(term: thenBranch, context: context)
         let elseType = inferTypesUnification(term: elseBranch, context: context)
-        substitution.merge(unifyTypes(left: thenType, right: elseType))
+        substitution.append(unifyTypes(thenType, elseType))
         return substituteTypes(type: thenType, substitutions: substitution)
     // return thenType
     // (C-Fun)
     case let .abstraction(name, body):
-        var extendedContext = context
         let variableType: Type = .variable(name: newTypeVariable())
-        extendedContext[name] = variableType
+        let extendedContext = context.adding(name: name, type: variableType)
         let bodyType = inferTypesUnification(term: body, context: extendedContext)
-        // return .function(argumentType: variableType, resultType: bodyType)
         return substituteTypes(type: .function(argumentType: variableType, resultType: bodyType), substitutions: substitution)
     // (C-Var)
     case let .variable(name):
@@ -98,9 +89,33 @@ func inferTypesUnification(term: Term, context: Context) -> Type {
         let variable: Type = .variable(name: newTypeVariable())
         let functionType = inferTypesUnification(term: function, context: context)
         let argumentType = inferTypesUnification(term: argument, context: context)
-        substitution.merge(unifyTypes(left: functionType, right: .function(argumentType: argumentType, resultType: variable)))
-        // return variable
+        substitution.append(unifyTypes(functionType, .function(argumentType: argumentType, resultType: variable)))
         return substituteTypes(type: variable, substitutions: substitution)
-    default: fatalError("Not implemented.")
+    case .string:
+        return .stringType
+    case .nilTerm:
+        return .list(type: .unit) // ?
+    case let .cons(head, tail):
+        let headType = inferTypesUnification(term: head, context: context)
+        let tailType = inferTypesUnification(term: tail, context: context)
+        substitution.append(unifyTypes(.list(type: headType), tailType))
+        return substituteTypes(type: tailType, substitutions: substitution)
+    case let .isEmpty(list):
+        let listType = inferTypesUnification(term: list, context: context)
+        substitution.append(unifyTypes(listType, .list(type: .unit)))
+        return substituteTypes(type: .boolean, substitutions: substitution)
+    case let .head(list):
+        let listType = inferTypesUnification(term: list, context: context)
+        substitution.append(unifyTypes(listType, .list(type: .unit)))
+        fatalError("TBI")
+    case .tail(list: let list):
+        fatalError("TBI")
+    case .wildcard(body: let body):
+        fatalError("TBI")
+    case .letBinding(name: let name, value: let value, body: let body):
+        let valueType = inferTypesUnification(term: value, context: context)
+        let extendedContext = context.adding(name: name, type: valueType)
+        let bodyType = inferTypesUnification(term: body, context: extendedContext)
+
     }
 }
