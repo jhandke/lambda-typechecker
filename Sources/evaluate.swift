@@ -20,14 +20,14 @@ func map(_ value: Value) -> Term {
     }
 }
 
-func evaluate(inputTerm: Term) -> Value {
+func evaluate(inputTerm: Term) throws(TypeError) -> Value {
     switch inputTerm {
     case let .abstraction(name, body):
         return .functionValue(name: name, body: body)
     case let .addition(lhs, rhs):
         // rewrite with do try syntax
-        let lhsEvaluated = evaluate(inputTerm: lhs)
-        let rhsEvaluated = evaluate(inputTerm: rhs)
+        let lhsEvaluated = try evaluate(inputTerm: lhs)
+        let rhsEvaluated = try evaluate(inputTerm: rhs)
         if case let .integerValue(lhsValue) = lhsEvaluated {
             if case let .integerValue(rhsValue) = rhsEvaluated {
                 return Value.integerValue(value: lhsValue + rhsValue)
@@ -38,8 +38,8 @@ func evaluate(inputTerm: Term) -> Value {
             fatalError("Evaluation error: \(lhsEvaluated) is not an integer value.")
         }
     case let .application(function, argument):
-        let evaluatedFunction = evaluate(inputTerm: function)
-        let evaluatedArgument = evaluate(inputTerm: argument)
+        let evaluatedFunction = try evaluate(inputTerm: function)
+        let evaluatedArgument = try evaluate(inputTerm: argument)
         let mappedArgument: Term = map(evaluatedArgument)
         switch evaluatedFunction {
         case let .functionValue(name, body):
@@ -48,7 +48,7 @@ func evaluate(inputTerm: Term) -> Value {
                 variableName: name,
                 replacementTerm: mappedArgument
             )
-            let result = evaluate(inputTerm: substituted)
+            let result = try evaluate(inputTerm: substituted)
             return result
         case .wildcard:
             fatalError("Not implemented.")
@@ -56,15 +56,15 @@ func evaluate(inputTerm: Term) -> Value {
             fatalError("Evaluation error: \(evaluatedFunction) is not a function nor a wildcard.")
         }
     case let .ascription(term, _):
-        return evaluate(inputTerm: term)
+        return try evaluate(inputTerm: term)
     case let .conditional(test, thenBranch, elseBranch):
-        let evaluatedTest = evaluate(inputTerm: test)
+        let evaluatedTest = try evaluate(inputTerm: test)
         switch evaluatedTest {
         case .trueValue:
-            let evaluatedThen = evaluate(inputTerm: thenBranch)
+            let evaluatedThen = try evaluate(inputTerm: thenBranch)
             return evaluatedThen
         case .falseValue:
-            let evaluatedElse = evaluate(inputTerm: elseBranch)
+            let evaluatedElse = try evaluate(inputTerm: elseBranch)
             return evaluatedElse
         default:
             fatalError("Evaluation error: Expected boolean value in \(evaluatedTest)")
@@ -73,7 +73,7 @@ func evaluate(inputTerm: Term) -> Value {
     case .trueConstant: return .trueValue
     case let .integerConstant(value): return .integerValue(value: value)
     case let .isZero(term):
-        let evaluatedTerm = evaluate(inputTerm: term)
+        let evaluatedTerm = try evaluate(inputTerm: term)
         switch evaluatedTerm {
         case let .integerValue(value):
             if value == 0 {
@@ -91,32 +91,35 @@ func evaluate(inputTerm: Term) -> Value {
     case .nilTerm:
         return .nilValue
     case let .cons(head, tail):
-        let evaluatedHead = evaluate(inputTerm: head)
-        let evaluatedTail = evaluate(inputTerm: tail)
+        let evaluatedHead = try evaluate(inputTerm: head)
+        let evaluatedTail = try evaluate(inputTerm: tail)
         return .cons(head: evaluatedHead, tail: evaluatedTail)
     case let .isEmpty(list):
-        let evaluatedList = evaluate(inputTerm: list)
-        if case .nilValue = evaluatedList {
+        let evaluatedList = try evaluate(inputTerm: list)
+        switch evaluatedList {
+        case .nilValue:
             return .trueValue
+        case .cons:
+            return .falseValue
+        default: fatalError("Evaluation error: \(evaluatedList) is not a list.")
         }
-        return .falseValue
     case let .head(list):
         guard case let .cons(head, _) = list else {
             fatalError("Evaluation error: \(list) is not a list.")
         }
-        return evaluate(inputTerm: head)
+        return try evaluate(inputTerm: head)
     case let .tail(list: list):
         guard case let .cons(_, tail) = list else {
             fatalError("Evaluation error: \(list) is not a list.")
         }
-        return evaluate(inputTerm: tail)
+        return try evaluate(inputTerm: tail)
     case let .string(value):
         return .string(value: value)
     case let .wildcard(body):
-        return .wildcard(body: evaluate(inputTerm: body))
+        return .wildcard(body: try evaluate(inputTerm: body))
     case let .letBinding(name, value, body):
         let substitutedBody = substitute(inputTerm: body, variableName: name, replacementTerm: value)
-        return evaluate(inputTerm: substitutedBody)
+        return try evaluate(inputTerm: substitutedBody)
     }
     fatalError("Evaluation error: No rule for \(inputTerm)")
 }

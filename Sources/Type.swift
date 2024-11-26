@@ -5,6 +5,8 @@
 // Copyright © 2024 Jakob Handke.
 //
 
+import Foundation
+
 typealias Context = [String: Type]
 
 extension Context {
@@ -27,6 +29,31 @@ indirect enum Type {
     case stringType
     case list(type: Type)
     case variable(name: String)
+}
+
+enum TypeError: Error {
+    case typeMismatch(Type, Type)
+    case badTypeIn(term: Term, actualType: Type, expectedType: Type)
+    case checkFailed(term: Term, expectedType: Type)
+    case variableNotInContext(name: String)
+    case unificationFailed(Type, Type)
+}
+
+extension TypeError {
+    var description: String {
+        switch self {
+        case let .typeMismatch(lhs, rhs):
+            return "TypeError: Type mismatch between \(lhs) and \(rhs)."
+        case let .badTypeIn(term, actualType, expectedType):
+            return "TypeError: Exptected \(expectedType) but got \(actualType) in \(term)."
+        case let .checkFailed(term, expectedType):
+            return "TypeError: Type check failed with type \(expectedType) in \(term)."
+        case let .variableNotInContext(name):
+            return "TypeError: Variable \(name) not found in context."
+        case let .unificationFailed(lhs, rhs):
+            return "TypeError: Unification of \(lhs) and \(rhs) failed."
+        }
+    }
 }
 
 extension Type: Equatable {

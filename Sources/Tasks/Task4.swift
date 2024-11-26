@@ -29,13 +29,17 @@ func task4() {
 
     // MARK: Task 4.9
 
-    print("Task 4.9")
-    print(unifyTypes(.function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
-                     .function(argumentType: .boolean, resultType: .variable(name: "gamma"))))
+    do {
+        print("Task 4.9")
+        try print(unifyTypes(.function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
+                             .function(argumentType: .boolean, resultType: .variable(name: "gamma"))))
 
-    print(unifyTypes(.function(argumentType: .integer, resultType: .function(argumentType: .variable(name: "alpha"), resultType: .integer)),
-                     .function(argumentType: .variable(name: "beta"), resultType: .variable(name: "gamma"))))
+        try print(unifyTypes(.function(argumentType: .integer, resultType: .function(argumentType: .variable(name: "alpha"), resultType: .integer)),
+                             .function(argumentType: .variable(name: "beta"), resultType: .variable(name: "gamma"))))
 
-    print(unifyTypes(.function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
-                     .function(argumentType: .boolean, resultType: .variable(name: "alpha"))))
+        try print(unifyTypes(.function(argumentType: .variable(name: "alpha"), resultType: .function(argumentType: .integer, resultType: .variable(name: "beta"))),
+                             .function(argumentType: .boolean, resultType: .variable(name: "alpha"))))
+    } catch {
+        print(error.description)
+    }
 }

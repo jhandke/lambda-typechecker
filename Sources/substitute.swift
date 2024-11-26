@@ -91,6 +91,7 @@ func substitute(inputTerm: Term, variableName: String, replacementTerm: Term) ->
     case let .wildcard(body):
         .wildcard(body: substitute(inputTerm: body, variableName: variableName, replacementTerm: replacementTerm))
     case let .letBinding(name, value, body):
+        // TODO: anpassen wenn Variable gebunden ist.
         .letBinding(name: name,
                     value: substitute(inputTerm: value,
                                       variableName: variableName,

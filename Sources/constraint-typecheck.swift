@@ -10,112 +10,146 @@ enum TypeScheme {
     case type(Type)
 }
 
-private var usedTypeVariables = [String]()
-private var typeVariables = ["α", "β", "γ", "δ", "ε", "ζ", "η", "θ", "ι", "κ", "μ",
-                             "ν", "ξ", "ο", "π", "ρ", "σ", "τ", "υ", "φ", "χ", "ψ", "ω"]
+func inferTypeUnification(term: Term, context: Context) throws(TypeError) -> Type {
+    var usedTypeVariables = [String]()
+    let typeVariables = ["α", "β", "γ", "δ", "ε", "ζ", "η", "θ", "ι", "κ", "μ",
+                         "ν", "ξ", "ο", "π", "ρ", "σ", "τ", "υ", "φ", "χ", "ψ", "ω"]
 
-func newTypeVariable() -> String {
-    if let variable = typeVariables.first(where: { variable in
-        !usedTypeVariables.contains(variable)
-    }) {
-        usedTypeVariables.append(variable)
-        return variable
-    } else {
-        var number = 1
-        var resultingVariable = typeVariables.first(where: { variable in
-            !usedTypeVariables.contains("\(variable)\(number)")
-        })
-        while resultingVariable == nil {
-            number += 1
-            resultingVariable = typeVariables.first(where: { variable in
+    return try inferType(term: term, context: context).0
+
+    func newTypeVariable() -> String {
+        if let variable = typeVariables.first(where: { variable in
+            !usedTypeVariables.contains(variable)
+        }) {
+            usedTypeVariables.append(variable)
+            return variable
+        } else {
+            var number = 1
+            var resultingVariable = typeVariables.first(where: { variable in
                 !usedTypeVariables.contains("\(variable)\(number)")
             })
+            while resultingVariable == nil {
+                number += 1
+                resultingVariable = typeVariables.first(where: { variable in
+                    !usedTypeVariables.contains("\(variable)\(number)")
+                })
+            }
+            resultingVariable! += "\(number)"
+            usedTypeVariables.append(resultingVariable!)
+            return resultingVariable!
         }
-        resultingVariable! += "\(number)"
-        usedTypeVariables.append(resultingVariable!)
-        return resultingVariable!
     }
-}
 
-func inferTypesUnification(term: Term, context: Context) -> Type {
-    var substitution = TypeSubstitution()
-    switch term {
-    // (C-True), (C-False)
-    case .trueConstant, .falseConstant: return .boolean
-    // (C-Int)
-    case .integerConstant: return .integer
-    // (C-Unit)
-    case .unit: return .unit
-    // (C-IsZero)
-    case let .isZero(body):
-        let bodyType = inferTypesUnification(term: body, context: context)
-        substitution.append(unifyTypes(bodyType, .integer))
-        return substituteTypes(type: .boolean, substitutions: substitution)
-    // (C-Add)
-    case let .addition(lhs, rhs):
-        let lhsType = inferTypesUnification(term: lhs, context: context)
-        substitution.append(unifyTypes(lhsType, .integer))
-        let rhsType = inferTypesUnification(term: rhs, context: context)
-        substitution.append(unifyTypes(rhsType, .integer))
-        return substituteTypes(type: .integer, substitutions: substitution)
-    // (C-Ascription)
-    case let .ascription(term, type):
-        let termType = inferTypesUnification(term: term, context: context)
-        substitution.append(unifyTypes(type, termType))
-        return substituteTypes(type: type, substitutions: substitution)
-    // (C-If)
-    case let .conditional(test, thenBranch, elseBranch):
-        let testType = inferTypesUnification(term: test, context: context)
-        substitution.append(unifyTypes(testType, .boolean))
-        let thenType = inferTypesUnification(term: thenBranch, context: context)
-        let elseType = inferTypesUnification(term: elseBranch, context: context)
-        substitution.append(unifyTypes(thenType, elseType))
-        return substituteTypes(type: thenType, substitutions: substitution)
-    // return thenType
-    // (C-Fun)
-    case let .abstraction(name, body):
-        let variableType: Type = .variable(name: newTypeVariable())
-        let extendedContext = context.adding(name: name, type: variableType)
-        let bodyType = inferTypesUnification(term: body, context: extendedContext)
-        return substituteTypes(type: .function(argumentType: variableType, resultType: bodyType), substitutions: substitution)
-    // (C-Var)
-    case let .variable(name):
-        if let type = context[name] {
-            return type
+    func substituteContext(_ context: Context, substitution: TypeSubstitution) -> Context {
+        context.mapValues { type in
+            substituteTypes(type: type, substitutions: substitution)
         }
-        fatalError("Typecheck error: Variable \(name) not found in context \(context).")
-    // (C-Apply)
-    case let .application(function, argument):
-        let variable: Type = .variable(name: newTypeVariable())
-        let functionType = inferTypesUnification(term: function, context: context)
-        let argumentType = inferTypesUnification(term: argument, context: context)
-        substitution.append(unifyTypes(functionType, .function(argumentType: argumentType, resultType: variable)))
-        return substituteTypes(type: variable, substitutions: substitution)
-    case .string:
-        return .stringType
-    case .nilTerm:
-        return .list(type: .unit) // ?
-    case let .cons(head, tail):
-        let headType = inferTypesUnification(term: head, context: context)
-        let tailType = inferTypesUnification(term: tail, context: context)
-        substitution.append(unifyTypes(.list(type: headType), tailType))
-        return substituteTypes(type: tailType, substitutions: substitution)
-    case let .isEmpty(list):
-        let listType = inferTypesUnification(term: list, context: context)
-        substitution.append(unifyTypes(listType, .list(type: .unit)))
-        return substituteTypes(type: .boolean, substitutions: substitution)
-    case let .head(list):
-        let listType = inferTypesUnification(term: list, context: context)
-        substitution.append(unifyTypes(listType, .list(type: .unit)))
-        fatalError("TBI")
-    case .tail(list: let list):
-        fatalError("TBI")
-    case .wildcard(body: let body):
-        fatalError("TBI")
-    case .letBinding(name: let name, value: let value, body: let body):
-        let valueType = inferTypesUnification(term: value, context: context)
-        let extendedContext = context.adding(name: name, type: valueType)
-        let bodyType = inferTypesUnification(term: body, context: extendedContext)
-        fatalError("TBI")
+    }
+
+    func inferType(term: Term, context: Context) throws(TypeError) -> (Type, TypeSubstitution) {
+        var substitution = TypeSubstitution()
+        switch term {
+        // (C-True), (C-False)
+        case .trueConstant, .falseConstant: return (.boolean, substitution)
+        // (C-Int)
+        case .integerConstant: return (.integer, substitution)
+        // (C-Unit)
+        case .unit: return (.unit, substitution)
+        // (C-IsZero)
+        case let .isZero(body):
+            let (bodyType, bodySubstitution) = try inferType(term: body, context: context)
+            substitution.append(try unifyTypes(bodyType, .integer))
+            substitution.append(bodySubstitution)
+            return (.boolean, substitution)
+        // (C-Add)
+        case let .addition(lhs, rhs):
+            let (lhsType, lhsSubstitution) = try inferType(term: lhs, context: context)
+            let (rhsType, rhsSubstitution) = try inferType(term: rhs, context: substituteContext(context, substitution: lhsSubstitution))
+            substitution.append(lhsSubstitution)
+            substitution.append(rhsSubstitution)
+            substitution.append(try unifyTypes(substituteTypes(type: lhsType, substitutions: rhsSubstitution), .integer))
+            substitution.append(try unifyTypes(substituteTypes(type: rhsType, substitutions: substitution), .integer))
+            return (.integer, substitution)
+        // (C-Ascription)
+        case let .ascription(term, type):
+            let (termType, termSubstitution) = try inferType(term: term, context: context)
+            substitution.append(termSubstitution)
+            substitution.append(try unifyTypes(type, termType))
+            return (type, substitution)
+        // (C-If)
+        case let .conditional(test, thenBranch, elseBranch):
+            let (testType, testSubstitution) = try inferType(term: test, context: context)
+            let (thenType, thenSubstitution) = try inferType(term: thenBranch, context: substituteContext(context, substitution: testSubstitution))
+            substitution.append(testSubstitution)
+            substitution.append(thenSubstitution)
+            let (elseType, elseSubstitution) = try inferType(term: elseBranch, context: substituteContext(context, substitution: substitution))
+            substitution.append(elseSubstitution)
+            substitution.append(try unifyTypes(substituteTypes(type: testType, substitutions: substitution), .boolean))
+            substitution.append(try unifyTypes(substituteTypes(type: thenType, substitutions: substitution),
+                                           substituteTypes(type: elseType, substitutions: substitution)))
+            return (substituteTypes(type: thenType, substitutions: substitution), substitution)
+        // (C-Fun)
+        case let .abstraction(name, body):
+            let variableType: Type = .variable(name: newTypeVariable())
+            let extendedContext = context.adding(name: name, type: variableType)
+            let (bodyType, bodySubstitution) = try inferType(term: body, context: extendedContext)
+            return (.function(argumentType: substituteTypes(type: variableType, substitutions: bodySubstitution),
+                              resultType: bodyType),
+                    bodySubstitution)
+        // (C-Var)
+        case let .variable(name):
+            guard let type = context[name] else {
+                throw .variableNotInContext(name: name)
+            }
+            return (type, substitution)
+        // (C-Apply)
+        case let .application(function, argument):
+            let (functionType, functionSubstitution) = try inferType(term: function, context: context)
+            substitution.append(functionSubstitution)
+            let (argumentType, argumentSubstitution) = try inferType(term: argument, context: substituteContext(context, substitution: substitution))
+            substitution.append(argumentSubstitution)
+            let variableType: Type = .variable(name: newTypeVariable())
+            substitution.append(
+                try unifyTypes(substituteTypes(type: functionType, substitutions: argumentSubstitution),
+                           .function(argumentType: argumentType, resultType: variableType))
+            )
+            return (substituteTypes(type: variableType, substitutions: substitution), substitution)
+        case .string:
+            return (.stringType, substitution)
+        case .nilTerm:
+            let variableType: Type = .variable(name: newTypeVariable())
+            return (.list(type: variableType), substitution)
+        case let .cons(head, tail):
+            let (headType, headSubstitution) = try inferType(term: head, context: context)
+            let (tailType, tailSubstitution) = try inferType(term: tail, context: substituteContext(context, substitution: headSubstitution))
+            substitution.append(headSubstitution)
+            substitution.append(tailSubstitution)
+            substitution.append(try unifyTypes(.list(type: headType), tailType))
+            return (substituteTypes(type: tailType, substitutions: substitution), substitution)
+        case let .isEmpty(list):
+            let (listType, _) = try inferType(term: list, context: context)
+            substitution.append(try unifyTypes(listType, .variable(name: newTypeVariable())))
+            return (.boolean, substitution)
+        case let .head(list):
+            let (listType, _) = try inferType(term: list, context: context)
+            let variableType: Type = .variable(name: newTypeVariable())
+            substitution = try unifyTypes(listType, .list(type: variableType))
+            return (substituteTypes(type: variableType, substitutions: substitution), substitution)
+        case let .tail(list):
+            let (listType, _) = try inferType(term: list, context: context)
+            substitution = try unifyTypes(listType, .list(type: .variable(name: newTypeVariable())))
+            return (substituteTypes(type: listType, substitutions: substitution), substitution)
+        case let .wildcard(body):
+            let variableType: Type = .variable(name: newTypeVariable())
+            let (bodyType, bodySubstitution) = try inferType(term: body, context: context)
+            return (.function(argumentType: substituteTypes(type: variableType, substitutions: bodySubstitution), resultType: bodyType), substitution)
+        case let .letBinding(name, value, body):
+            let (valueType, valueSubstitution) = try inferType(term: value, context: context)
+            substitution.append(valueSubstitution)
+            let extendedContext = context.adding(name: name, type: valueType)
+            let (bodyType, bodySubstitution) = try inferType(term: body, context: extendedContext)
+            substitution.append(bodySubstitution)
+            return (bodyType, substitution)
+        }
     }
 }

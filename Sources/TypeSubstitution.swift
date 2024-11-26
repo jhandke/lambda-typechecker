@@ -53,7 +53,7 @@ func substituteTypes(type: Type, substitutions: TypeSubstitution) -> Type {
     }
 }
 
-func unifyTypes(_ left: Type, _ right: Type) -> TypeSubstitution {
+func unifyTypes(_ left: Type, _ right: Type) throws(TypeError) -> TypeSubstitution {
     switch (left, right) {
     case (_, _) where left == right:
         return [:]
@@ -62,14 +62,16 @@ func unifyTypes(_ left: Type, _ right: Type) -> TypeSubstitution {
     case let (_, .variable(rightName)) where !occurs(rightName, in: left):
         return [rightName: left]
     case let (.function(leftArgumentType, leftResultType), .function(rightArgumentType, rightResultType)):
-        let unifiedArgumentTypes = unifyTypes(leftArgumentType, rightArgumentType)
-        let unifiedResultTypes = unifyTypes(
+        let unifiedArgumentTypes = try unifyTypes(leftArgumentType, rightArgumentType)
+        let unifiedResultTypes = try unifyTypes(
             substituteTypes(type: leftResultType, substitutions: unifiedArgumentTypes),
             substituteTypes(type: rightResultType, substitutions: unifiedArgumentTypes)
         )
         return unifiedArgumentTypes.appending(unifiedResultTypes)
+    case let (.list(leftType), .list(rightType)):
+        return try unifyTypes(leftType, rightType)
     default:
-        fatalError("Type error: Can not unify types \(left) and \(right).")
+        throw .unificationFailed(left, right)
     }
 
     func occurs(_ variableName: String, in typeScheme: Type) -> Bool {

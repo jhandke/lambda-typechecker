@@ -45,7 +45,7 @@
 //     print(error)
 // }
 
-// task4()
+task4()
 
 // let term: Term = .conditional(test: .isZero(term: .integerConstant(value: 0)),
 //                               thenBranch: .application(function: .abstraction(name: "x",
@@ -56,6 +56,10 @@
 // print(term)
 // print(inferTypesUnification(term: term, context: [:]))
 
-let letBinding: Term = .letBinding(name: "b", value: .integerConstant(value: 34), body: .addition(lhs: .variable(name: "b"), rhs: .integerConstant(value: 35)))
-print(letBinding)
-print(evaluate(inputTerm: letBinding))
+// let letBinding: Term = .letBinding(name: "b", value: .integerConstant(value: 34), body: .addition(lhs: .variable(name: "b"), rhs: .integerConstant(value: 35)))
+// print(letBinding)
+// do {
+//     try print(evaluate(inputTerm: letBinding))
+// } catch {
+//     print(error)
+// }
